@@ -2,74 +2,64 @@ import torch
 import evaluate
 import pandas as pd
 import os
-from torch.utils.data import DataLoader
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
-# Assuming your folder structure from previous turns
-from src.dataaaa.loader import SummarizationDataset 
-import sys
-import os
-# This allows the script to find the 'src' directory regardless of where you run it
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+import glob
+import kagglehub
+from torch.utils.data import DataLoader, Dataset
+from transformers import BartForConditionalGeneration, BartTokenizer
 
+# 1. Custom Dataset Class (Keep it here so the script is self-contained)
+class SummarizationDataset(Dataset):
+    def __init__(self, dataframe, tokenizer, max_len=512, target_len=64):
+        self.tokenizer = tokenizer
+        self.data = dataframe
+        self.max_len = max_len
+        self.target_len = target_len
 
-def run_validation(model_path, val_csv_path):
-    # 1. Load Metric
-    rouge = evaluate.load("rouge")
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, index):
+        article = str(self.data.iloc[index]['article'])
+        summary = str(self.data.iloc[index]['highlights'])
+        source = self.tokenizer(article, max_length=self.max_len, padding='max_length', truncation=True, return_tensors='pt')
+        target = self.tokenizer(summary, max_length=self.target_len, padding='max_length', truncation=True, return_tensors='pt')
+        labels = target['input_ids'].flatten()
+        labels[labels == self.tokenizer.pad_token_id] = -100
+        return {'input_ids': source['input_ids'].flatten(), 'attention_mask': source['attention_mask'].flatten(), 'labels': labels}
+
+def run_evaluation(model_path):
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    rouge = evaluate.load("rouge")
 
-    # 2. Load Saved Model and Tokenizer
+    # Load Model & Tokenizer
     print(f"Loading model from {model_path}...")
-    tokenizer = AutoTokenizer.from_pretrained(model_path)
-    model = AutoModelForSeq2SeqLM.from_pretrained(model_path).to(device)
+    tokenizer = BartTokenizer.from_pretrained(model_path)
+    model = BartForConditionalGeneration.from_pretrained(model_path).to(device)
 
-    # 3. Load Validation Data
-    # We use a small subset (e.g., 100 rows) for a quick check
-    df_val = pd.read_csv(val_csv_path, nrows=100).dropna()
-    val_dataset = SummarizationDataset(df_val, tokenizer)
-    val_loader = DataLoader(val_dataset, batch_size=4)
+    # Load Data
+    path = kagglehub.dataset_download("gowrishankarp/newspaper-text-summarization-cnn-dailymail")
+    val_file = glob.glob(os.path.join(path, "**", "validation.csv"), recursive=True)[0]
+    df_val = pd.read_csv(val_file, nrows=100).dropna()
+    
+    loader = DataLoader(SummarizationDataset(df_val, tokenizer), batch_size=4)
 
-    # 4. Generate Summaries
+    # Generate
     model.eval()
-    predictions = []
-    references = []
-
-    print("Generating summaries for validation...")
-    for batch in val_loader:
+    preds, refs = [], []
+    print("Generating summaries...")
+    for batch in loader:
         with torch.no_grad():
-            # Generate the summary
-            output_tokens = model.generate(
-                input_ids=batch['input_ids'].to(device),
-                attention_mask=batch['attention_mask'].to(device),
-                max_length=64,
-                num_beams=4 # Helps get better quality summaries
-            )
-            
-            # Decode predictions
-            preds = tokenizer.batch_decode(output_tokens, skip_special_tokens=True)
-            
-            # Decode references (labels)
+            out = model.generate(input_ids=batch['input_ids'].to(device), max_length=64, num_beams=4)
+            preds.extend(tokenizer.batch_decode(out, skip_special_tokens=True))
             labels = batch['labels']
-            labels[labels == -100] = tokenizer.pad_token_id # Fix the -100 for decoding
-            refs = tokenizer.batch_decode(labels, skip_special_tokens=True)
+            labels[labels == -100] = tokenizer.pad_token_id
+            refs.extend(tokenizer.batch_decode(labels, skip_special_tokens=True))
 
-            predictions.extend(preds)
-            references.extend(refs)
-
-    # 5. Compute ROUGE Score
-    results = rouge.compute(predictions=predictions, references=references)
-    
-    print("\n--- Validation Results ---")
-    for key, value in results.items():
-        print(f"{key}: {value:.4f}")
-    
-    # Show one example
-    print("\n--- Sample Comparison ---")
-    print(f"Original: {df_val.iloc[0]['article'][:200]}...")
-    print(f"Predicted Summary: {predictions[0]}")
-    print(f"Actual Highlight: {references[0]}")
+    # Score
+    results = rouge.compute(predictions=preds, references=refs)
+    print("\n--- RESULTS ---")
+    for k, v in results.items():
+        print(f"{k.upper()}: {v:.4f}")
 
 if __name__ == "__main__":
-    # Update these paths based on where Colab saved your data/model
-    MODEL_DIR = "./saved_model" 
-    VAL_DATA = "C:/Users/MAHIR/.cache/kagglehub/datasets/.../validation.csv" # Or Colab path
-    run_validation(MODEL_DIR, VAL_DATA)
+    run_evaluation("./trained_bart_model")

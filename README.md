@@ -1,4 +1,4 @@
-# Desi Food Classifier CNN
+text_summerization
 
 The purpose of this repository is to serve as a base template for deep learning projects in python.
 
@@ -36,3 +36,17 @@ text_summery_rep/
 ├── main.py               # Entry point to trigger training
 ├── requirements.txt      # List of dependencies
 └── setup.py              # To install 'src' as a local package
+
+
+# BART Text Summarizer
+A deep learning project to summarize news articles using the BART-base model, trained on the CNN/DailyMail dataset.
+
+### 🏆 Model Performance (ROUGE Scores)
+* **ROUGE-1:** 0.4070
+* **ROUGE-2:** 0.1890
+* **ROUGE-L:** 0.3798
+
+### 📂 Project Structure
+* `src/dataaaa/`: Data loading and cleaning logic.
+* `src/model/`: BART model definition, training loop, and ROUGE evaluation.
+* `trained_bart_model/`: Saved model weights (Download from Google Drive).

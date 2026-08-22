@@ -1,52 +1,65 @@
-text_summerization
+# BART Text Summarizer & Deep Learning Template
 
-The purpose of this repository is to serve as a base template for deep learning projects in python.
+This repository serves as a base template for deep learning projects in Python. It includes a text summarization system using the **BART** model, trained on the **CNN/DailyMail** dataset.
 
-### Pre-Requirements
+---
 
-1. Python 3.10.6
-2. uv
+## 📋 Prerequisites
+* **Python**: `3.10.6`
+* **Package Manager**: `uv`
 
-#### Setup
+---
 
-1. Create and activate virtual Environment
+## ⚙️ Setup & Installation
 
+### 1. Create and Activate Virtual Environment
+```bash
+# Create environment
+uv venv
+
+# Activate on Windows
+.venv\Scripts\activate
+
+# Activate on Linux/macOS
+source .venv/bin/activate
 ```
-    Create: uv venv
-    Activate on Windows: .venv\Scripts\activate
-    Activate on Linux/Macos: source .venv/bin/activate
+
+### 2. Install Dependencies
+```bash
+uv sync
 ```
 
-2. Install dependencies
-   ` uv sync`
+---
 
-steby step flow
-text_summery_rep/
-├── .venv/                # Your virtual environment
-├── artifacts/            # Stores trained model weights and logs
-├── data/                 # Raw and processed CSVs
-├── notebooks/            # Experimental Jupyternotebooks (.ipynb)
-├── src/                  # Core logic (The heart of the project)
-│   ├── components/       # DataIngestion, DataTransformation, ModelTrainer
-│   ├── pipelines/        # Training and Prediction pipelines
-│   ├── constants/        # Fixed paths and Hyperparameters
-│   ├── entity/           # Configuration classes
-│   └── utils/            # Helper functions (save/load models)
-├── app/                  # FastAPI implementation
-├── main.py               # Entry point to trigger training
-├── requirements.txt      # List of dependencies
-└── setup.py              # To install 'src' as a local package
+## 🏆 Model Performance
+The fine-tuned BART model achieves the following **ROUGE** scores:
 
+* **ROUGE-1**: `0.4070`
+* **ROUGE-2**: `0.1890`
+* **ROUGE-L**: `0.3798`
 
-# BART Text Summarizer
-A deep learning project to summarize news articles using the BART-base model, trained on the CNN/DailyMail dataset.
+---
 
-### 🏆 Model Performance (ROUGE Scores)
-* **ROUGE-1:** 0.4070
-* **ROUGE-2:** 0.1890
-* **ROUGE-L:** 0.3798
+## 📂 Project Structure
 
-### 📂 Project Structure
-* `src/dataaaa/`: Data loading and cleaning logic.
-* `src/model/`: BART model definition, training loop, and ROUGE evaluation.
-* `trained_bart_model/`: Saved model weights (Download from Google Drive).
+```text
+├── app/
+│   ├── .keep
+│   └── streamlit.py        # Streamlit web application interface
+├── data/
+│   └── dawnload.py         # Script to download datasets
+├── notebook/
+│   └── eda.ipynb           # Exploratory Data Analysis notebook
+├── src/
+│   ├── dataaaa/            # Data loading and cleaning logic
+│   ├── model/              # BART model definition and training loop
+│   └── pipelines/          # Training and prediction workflows
+├── .gitignore              # Files to ignore in Git
+├── __init__.py            # Makes src/ a Python package
+├── README.md               # Project documentation
+├── main.py                 # Main entry point to trigger training
+├── requirement.txt         # List of project dependencies
+└── utils.py                # Helper functions (save/load models)
+```
+
+> 💡 **Note on Model Weights:** The raw model weights are saved inside `trained_bart_model/`. Download them from Google Drive before running the application.
